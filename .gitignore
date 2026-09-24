@@ -1,0 +1,27 @@
+# Виртуальные окружения
+env/
+venv/
+.venv/
+Include/
+Lib/
+Scripts/
+share/
+pyvenv.cfg
+
+# Настройки Visual Studio и VS Code
+.vs/
+.vscode/
+*.suo
+*.user
+*.sln
+
+# Кэш Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Распределения и пакеты
+*.egg-info/
+dist/
+build/
