@@ -25,3 +25,6 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+
+#Настройки py_to_exe
+massparseq_py_to_exe_settings.json

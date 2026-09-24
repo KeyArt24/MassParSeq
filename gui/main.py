@@ -4,7 +4,6 @@ import re
 import sys
 import time
 import gc
-from pathlib import Path
 
 # Получаем путь к папке 'gui'
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -16,13 +15,11 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from dataclasses import dataclass
-from collections import deque
 
 from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QWidget, QTabWidget, QVBoxLayout, QToolBar, QFileDialog, QMessageBox, QScrollArea, QTextEdit
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QSizePolicy
 from PySide6.QtCore import QThread, Signal
-import pyqtgraph as pg
 
 from gui_styles.css_style import css_tab_style
 from core.Njit_FastaQ import PYJITFASTQ, Jit
@@ -124,7 +121,7 @@ class MainWindow(QMainWindow):
 
 		self.action_load_file = QAction(QIcon(), 'Загрузить файлы', self)
 		#self.action_load_dir = QAction(QIcon(), 'Загрузить папку', self) ---------- MINUS ACTION
-		self.action_save_result = QAction(QIcon(), 'Сохранить отчёт', self)
+		#self.action_save_result = QAction(QIcon(), 'Сохранить отчёт', self) ---------- MINUS ACTION
 
 	def _init_menu_(self):
 		menu_bar = self.menuBar()
@@ -134,7 +131,7 @@ class MainWindow(QMainWindow):
 		
 		menu_file.addAction(self.action_load_file)
 		#menu_file.addAction(self.action_load_dir) ---------- MINUS ACTION
-		menu_file.addAction(self.action_save_result)
+		#menu_file.addAction(self.action_save_result) ---------- MINUS ACTION
 
 		menu_analysis.addAction(self.action_file_analysis)
 		menu_analysis.addAction(self.action_all_files_analysis)
@@ -148,6 +145,7 @@ class MainWindow(QMainWindow):
 		# Настройки главного окна
 		self.resize(800, 600)
 		self.setWindowTitle('Масспарсек ЭДАК')
+		
 
 		# Настройки вкладок
 		self.tab_cards.setTabsClosable(True)
@@ -398,6 +396,7 @@ class MainWindow(QMainWindow):
 		
 if __name__ == "__main__":
 	app = QApplication(sys.argv)
+	app.setWindowIcon(QIcon("gui_styles/massparseq.ico"))
 	main = MainWindow()
 	main.show()
 	app.exec()
