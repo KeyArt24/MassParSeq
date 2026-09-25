@@ -9,10 +9,6 @@ if _core_dir not in sys.path:
 import time
 import mmap
 import numpy as np
-from tabulate import tabulate
-from matplotlib import pyplot as plt
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 import gc
 from isal import igzip
 from njit_main_opt import jit_common_func
@@ -69,31 +65,6 @@ class Jit:
         except Exception as e:
             print(e)
 
-class BasePlotter:
-    """Базовый класс для настройки общих параметров графиков"""
-    
-    @staticmethod
-    def setup_axes(ax, title, xlabel, ylabel, xlim=None, ylim=None, enable_grid=True):
-        """Общая настройка осей"""
-        ax.tick_params(axis='both', labelsize=8)
-        ax.set_title(title, fontsize=8)
-        ax.set_xlabel(xlabel, fontsize=8)
-        ax.set_ylabel(ylabel, fontsize=8)
-        
-        if xlim:
-            ax.set_xlim(xlim)
-        if ylim:
-            ax.set_ylim(ylim)
-        
-        if enable_grid:
-            ax.grid(True, which='minor', linestyle=':', linewidth=0.5, color='lightgray')
-            ax.minorticks_on()
-    
-    @staticmethod
-    def add_legend(ax, loc='lower left', bbox_to_anchor=(1, 0)):
-        """Добавление легенды с единым стилем"""
-        ax.legend(loc=loc, fontsize='small', handlelength=1.5, bbox_to_anchor=bbox_to_anchor)
-
 class PYJITFASTQ():
     def __init__(self):
         
@@ -107,7 +78,6 @@ class PYJITFASTQ():
 
     def load_fastq(self, filepath):
         self.FILEPATH = filepath
-
 
     def _status(self, msg: str):
         cb = self.status_callback
@@ -124,119 +94,6 @@ class PYJITFASTQ():
             self.read_fastq_gz(cancel)
         else:
             self._status('Не найден путь к файлу')
-
-    # ВИЗУАЛИЗАЦИЯ ---------------------------------------------------------------------------
-    def visual_distrub_qual(self, ax: plt.axes = None):
-        """График качества по позициям"""
-        stat = self.calculate_per_base_stats_fast(self.REPORT.distrub_qual)
-        max_len = self.REPORT.max_len_read
-        positions = range(1, min(len(stat['mean']), max_len) + 1)
-    
-        # Зоны качества
-        ax.axhspan(28, 40, alpha=0.2, color='green', label='Хорошее качество (>28)')
-        ax.axhspan(20, 28, alpha=0.2, color='yellow', label='Среднее качество (20-28)')
-        ax.axhspan(0, 20, alpha=0.2, color='red', label='Плохое качество (<20)')
-    
-        # Статистические линии
-        ax.fill_between(positions, stat['q25'][:max_len], stat['q75'][:max_len],
-                        alpha=0.3, color='blue', label='25-75%')
-        ax.plot(positions, stat['q90'][:max_len], 'b--', alpha=0.5, linewidth=0.8, label='10-90%')
-        ax.plot(positions, stat['q10'][:max_len], 'b--', alpha=0.5, linewidth=0.8)
-        ax.plot(positions, stat['median'][:max_len], 'r-', linewidth=2, label='Медиана')
-        ax.plot(positions, stat['mean'][:max_len], 'b-', linewidth=1, alpha=0.7, label='Среднее')
-    
-        # Настройка осей
-        ax.set_xlabel('Позиция в риде (bp)', fontsize=8)
-        ax.set_ylabel('Качество (Phred score)', fontsize=8)
-        ax.set_title('Per Base Sequence Quality', fontsize=8)
-        ax.set_xlim(1, max_len)
-        ax.set_ylim(0, 42)
-    
-        # Настройка сетки ПОЗИЦИЙ (каждый bp)
-        ax.set_xticks(range(1, max_len + 1))           # метки на каждой позиции
-        ax.set_xticks(range(1, max_len + 1), minor=True)  # minor тики на каждой позиции
-        ax.tick_params(axis='x', labelsize=8) 
-    
-        # Основная сетка (для major тиков, которые можно разрежить)
-        major_step = max(1, max_len // 20)  # примерно 20 меток
-        major_ticks = range(1, max_len + 1, major_step)
-        ax.set_xticks(major_ticks)  # только каждые N позиций
-        ax.set_xticks(range(1, max_len + 1), minor=True)  # все позиции как minor
-    
-        # Включаем сетку
-        ax.grid(True, which='major', linestyle='-', linewidth=0.5, color='gray', alpha=0.5)
-        ax.grid(True, which='minor', linestyle=':', linewidth=0.3, color='lightgray', alpha=0.5)
-    
-        # Легенда
-        ax.legend(loc='lower left', fontsize='small', handlelength=1.5, bbox_to_anchor=(1, 0))
-
-    def visual_distrub_qual_count(self, ax: plt.axes = None):
-        """Гистограмма распределения среднего качества ридов"""
-        x = range(self.REPORT.distrub_qual_c.size)
-        y = self.REPORT.distrub_qual_c
-        ax.bar(x, y)
-        
-        BasePlotter.setup_axes(ax, 'Distribution of Mean Read Quality', 
-                               'Среднее качество рида (Phred)', 'Количество ридов')
-    
-    def visual_distrub_gc(self, ax: plt.axes = None):
-        """Гистограмма распределения GC%"""
-        x = range(1, 101)
-        y = self.REPORT.distrub_gc
-        ax.bar(x, y)
-        
-        BasePlotter.setup_axes(ax, 'Distribution of GC Content', '% GC', 'Количество ридов')
-    
-    def visual_distrub_len(self, ax: plt.axes = None):
-        """Гистограмма распределения длин ридов"""
-        x = range(1, self.REPORT.max_len_read + 1)
-        y = self.REPORT.distrub_len
-        ax.bar(x, y)
-        
-        BasePlotter.setup_axes(ax, 'Distribution of Read Lengths', 'Длина рида (bp)', 'Количество ридов')
-    
-    def visual_distrub_nuc(self, ax: plt.axes = None):
-        """График нуклеотидного состава по позициям"""
-        distrub = self.REPORT.distrub_nuc
-        # Нормализация по строкам (в процентах)
-        row_sums = distrub.sum(axis=1, keepdims=True)
-        distrub_norm = distrub / row_sums * 100
-        
-        positions = range(1, len(distrub_norm) + 1)
-        
-        colors = {'A': 'green', 'C': 'blue', 'G': 'black', 'T': 'red', 'N': 'gray'}
-        styles = {'A': '-', 'C': '-', 'G': '-', 'T': '-', 'N': '--'}
-        
-        for i, (base, color) in enumerate(colors.items()):
-            ax.plot(positions, distrub_norm[:, i], label=base, color=color, 
-                    lw=1, linestyle=styles[base])
-        
-        BasePlotter.setup_axes(ax, 'Per Base Sequence Content', 'Position in read (bp)', 
-                               'Percentage (%)', ylim=(0, 100))
-        BasePlotter.add_legend(ax)
-    
-    def visual_dashbord(self, tag = 'show'):
-        """Создание мозаичного отчёта"""
-
-
-        fig = Figure(figsize = (12, 5))
-
-        axd = fig.subplot_mosaic([['A', 'A'], ['B', 'C'], ['D', 'E']])
-        
-        self.visual_distrub_qual(axd['A'])
-        self.visual_distrub_gc(axd['B'])
-        self.visual_distrub_len(axd['C'])
-        self.visual_distrub_qual_count(axd['D'])
-        self.visual_distrub_nuc(axd['E'])
-        
-        fig.tight_layout()
-        
-        if tag == 'show':
-            return fig
-        elif tag == 'save':
-            name = self.FILEPATH.split('\\')[-1] + '.report.png'
-            fig.savefig(name, dpi=600, bbox_inches='tight')
-            print(f'Результаты сохранены в {name}')
 
     # ПОЛУЧЕНИЕ ЧАНКОВ И СМЕЩЕНИЙ ПО ФАЙЛУ ------------------------------------------------------
     def offsets_positions(self):
@@ -438,7 +295,6 @@ class PYJITFASTQ():
         print()
         print('*********************************** END REPORT ************************************')
         print()
-    
     
     # АККАМУЛИРОВАНИЕ ДАННЫХ---------------------------------------------------------------------
     def accumulation_data(self, result: Chunk_Result):
@@ -664,9 +520,6 @@ def testing():
         total_time += elapsed
         tolat_size += os.path.getsize(file)
         analyzer.print_report(elapsed = elapsed, file_size = os.path.getsize(file))
-        analyzer.visual_dashbord(tag = 'save')
-
-
 
     print(f'Всего времени на обработку файлов {total_time / 60} минут')
     print(f"  Размер файлов     : {tolat_size / (1024 ** 3):.2f} ГБ")

@@ -1,8 +1,10 @@
-from cProfile import label
+
+import sys
 import pyqtgraph as pg
 import numpy as np
 from PySide6.QtGui import QColor
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication
 
 
 
@@ -13,11 +15,13 @@ class PlotPyQtGraph(pg.GraphicsLayoutWidget):
         self.REPORT = data
 
         # 1. Создаем сетку осей (PlotItem) один раз при инициализации виджета
-        self.pA = self.addPlot(row=0, col=0, colspan=2)
-        self.pB = self.addPlot(row=1, col=0)
-        self.pC = self.addPlot(row=1, col=1)
-        self.pD = self.addPlot(row=2, col=0)
-        self.pE = self.addPlot(row=2, col=1)
+        self.pA = self.addPlot(row=0, col=0, colspan=4)
+        self.pB = self.addPlot(row=1, col=0, colspan=1)
+        self.pC = self.addPlot(row=1, col=2, colspan=1)
+        self.pD = self.addPlot(row=2, col=0, colspan=1)
+        self.pE = self.addPlot(row=2, col=2, colspan=1)
+
+
 
         # 2. Инициализируем графические элементы внутри осей и сохраняем на них ссылки
         self._init_graphic_items()
@@ -46,21 +50,28 @@ class PlotPyQtGraph(pg.GraphicsLayoutWidget):
         self.pA.addItem(yellow_zone)
         self.pA.addItem(red_zone)
 
-        self.legend = self.pA.addLegend(offset=(-10, 10), labelTextSize='8pt')
-        self.legend.setBrush(pg.mkBrush(255, 255, 255, 180)) 
-        self.legend.setPen(pg.mkPen(0, 0, 0))
-
         # Ссылки на линии графика А
         self.curve_median = self.pA.plot(pen=pg.mkPen('r', width=2), name='Медиана')
         self.curve_mean = self.pA.plot(pen=pg.mkPen('b', width=1), name='Среднее')
         self.curve_q90 = self.pA.plot(pen=pg.mkPen(color=(0, 0, 255, 120), width=0.8, style=Qt.DashLine))
         self.curve_q10 = self.pA.plot(pen=pg.mkPen(color=(0, 0, 255, 120), width=0.8, style=Qt.DashLine))
-        
-        # Ссылки для fill_between
-        self.curve_q25 = self.pA.plot(pen=None)
-        self.curve_q75 = self.pA.plot(pen=None)
-        self.fill_A = pg.FillBetweenItem(self.curve_q25, self.curve_q75, brush=QColor(0, 0, 255, 50))
-        self.pA.addItem(self.fill_A)
+
+        self.bars_A = pg.BarGraphItem(x = [], width = 0.9, y0 = [], y1 = [], brush = QColor(255, 165, 0, 150), pen = None)
+        self.pA.addItem(self.bars_A)
+
+        # Создание легенды для графика A
+        self.legendA = pg.LegendItem(frame=False, colCount=4)
+        self.legendA.setColumnCount(1)
+        self.legendA.setMaximumHeight(30) 
+        self.legendA.setLabelTextColor('black')
+        self.addItem(self.legendA, row = 0, col = 4)
+
+        self.legendA.addItem(self.curve_median, 'Медиана')
+        self.legendA.addItem(self.curve_mean, 'Среднее')
+        self.legendA.addItem(self.bars_A, 'q75/q25')
+        self.legendA.addItem(self.curve_q90, 'q90')
+        self.legendA.addItem(self.curve_q10, 'q10')
+
 
         # --- График B: Distribution of GC Content (Гистограмма) ---
         self.pB.setTitle('Distribution of GC Content', size='8pt')
@@ -89,16 +100,20 @@ class PlotPyQtGraph(pg.GraphicsLayoutWidget):
         self.pE.setLabel('left', 'Percentage (%)', size='8pt')
         self.pE.setYRange(0, 100)
 
-        # Создаем 5 линий для нуклеотидов А, С, G, T, N
-        self.legend = self.pE.addLegend(offset=(-10, 10), labelTextSize='8pt')
-        self.legend.setBrush(pg.mkBrush(255, 255, 255, 180)) 
-        self.legend.setPen(pg.mkPen(200, 200, 200))
+        # Создание легенды для графика E
+        self.legendE = pg.LegendItem()
+        self.legendE.setColumnCount(1)
+        self.legendE.setMaximumHeight(30) 
+        self.legendE.setLabelTextColor('black')
+        self.addItem(self.legendE, row = 2, col = 4)
 
+        # Создаем 5 линий для нуклеотидов А, С, G, T, N
         colors = {'A': 'g', 'C': 'b', 'G': 'k', 'T': 'r', 'N': 'b'}
         self.nuc_curves = {}
         for base, color in colors.items():
             style = Qt.DashLine if base == 'N' else Qt.SolidLine
             self.nuc_curves[base] = self.pE.plot(pen=pg.mkPen(color, width=1, style=style), name=base)
+            self.legendE.addItem(self.nuc_curves[base], base)
 
     def visual_dashbord(self, data):
         """Главный метод обновления. Сюда мы просто передаем новый объект REPORT"""
@@ -119,14 +134,15 @@ class PlotPyQtGraph(pg.GraphicsLayoutWidget):
         self.pA.setXRange(1, max_len)
 
         # Вместо .plot() вызываем .setData() на сохраненных кривых
-        self.curve_median.setData(positions, stat['median'][:max_len], label='Медиана')
-        self.curve_mean.setData(positions, stat['mean'][:max_len], label='Среднее')
+        self.curve_median.setData(positions, stat['median'][:max_len])
+        self.curve_mean.setData(positions, stat['mean'][:max_len])
         self.curve_q90.setData(positions, stat['q90'][:max_len])
         self.curve_q10.setData(positions, stat['q10'][:max_len])
-        
-        # Обновляем невидимые границы, FillBetweenItem перерисуется сам
-        self.curve_q25.setData(positions, stat['q25'][:max_len])
-        self.curve_q75.setData(positions, stat['q75'][:max_len])
+
+        # Для гистограммы .setOpts()
+        y1_data = stat['q75'][:max_len] + 0.2
+        self.bars_A.setOpts(x=positions, y0=stat['q25'][:max_len], y1=y1_data)
+
         self.pA.autoRange()
 
     def _update_distrub_qual_count(self):
@@ -212,3 +228,12 @@ class PlotPyQtGraph(pg.GraphicsLayoutWidget):
             stats['q90'][pos] = q90_idx
 
         return stats
+
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    graph = PlotPyQtGraph()
+    graph.show()
+
+    sys.exit(app.exec())

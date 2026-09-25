@@ -100,6 +100,8 @@ class MainWindow(QMainWindow):
 		self._config_()
 		self._connect_signals_()
 
+		self.setWindowIcon(QIcon(r"C:\Users\Stupnikova\Desktop\Massparseq EDAQ\gui\gui_styles\massparseq.png")) 
+
 	def _init_ui_(self):
 		self.tab_cards = QTabWidget()
 		self.main_lay = QVBoxLayout()
@@ -336,7 +338,7 @@ class MainWindow(QMainWindow):
 
 				tab_report = PlotPyQtGraph()
 				tab_report.setObjectName('tab_report')
-				tab_report.setMinimumHeight(750)
+				tab_report.setMinimumHeight(1200)
 				tab_report.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 			
 				lay = QVBoxLayout()
@@ -388,9 +390,10 @@ class MainWindow(QMainWindow):
 		return report_text
 
 	def open_about(self):
+		self.about.setWindowIcon(QIcon(r"C:\Users\Stupnikova\Desktop\Massparseq EDAQ\gui\gui_styles\massparseq.png")) 
 		self.about.setHtml(about_programm)
 		self.about.setWindowTitle('Справка')
-		self.about.setMinimumSize(800, 600)
+		self.about.setMinimumSize(600, 600)
 		self.about.show()
 
 		
