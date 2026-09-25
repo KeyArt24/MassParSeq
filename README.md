@@ -25,5 +25,9 @@ Programm for Quality Analysis NGS library
 **Визуализация**
 Результаты представлены в виде интерактивных графиков.
 
+<img width="1919" height="783" alt="image" src="https://github.com/user-attachments/assets/8e95c6ae-eadb-4174-a02f-4be69bf9d0c3" />
+
+<img width="1919" height="813" alt="image" src="https://github.com/user-attachments/assets/176a1e90-ba7e-4f5d-899f-829c680a463f" />
+
 **Тестовая программа**
 Готовый .exe файл программы можно скачать по ссылки - https://disk.yandex.ru/d/w8B5BOuHXAXkLw
