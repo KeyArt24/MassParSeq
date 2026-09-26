@@ -10,7 +10,7 @@ import time
 import mmap
 import numpy as np
 import gc
-from isal import igzip
+from isal import igzip, igzip_threaded
 from njit_main_opt import jit_common_func
 from dataclasses import dataclass
 from typing import Optional
@@ -203,7 +203,7 @@ class PYJITFASTQ():
             print(ex)
 
     def read_fastq_gz(self, cancel):
-        chunk = 1024 * 1024 * 512
+        chunk = 1024 * 1024 * 102
         buffer = np.zeros(chunk, dtype=np.uint8) # Запас 1МБ для длинных ридов
         offset = 0
         with igzip.open(self.FILEPATH, "rb") as f:
@@ -212,6 +212,7 @@ class PYJITFASTQ():
                     self._status(f'Анализ отменён')
                     return
                 self._status(f'Процесс... Обработанно {self.REPORT.count_reads} ридов, {self.REPORT.ram/1024**3:.2f} ГБ памяти RAM на массивы')
+                chunk_data = None 
                 # Читаем данные в буфер после остатка с прошлого раза
                 bytes_read = f.readinto(buffer[offset:])
                 if bytes_read == 0 and offset == 0:
@@ -246,8 +247,9 @@ class PYJITFASTQ():
                     self._status('Ошибка выполнения njit функции')
                     #print(e)   
                     
-                result = Chunk_Result(*chunk_data)
-                self.accumulation_data(result)
+                if chunk_data is not None:
+                    result = Chunk_Result(*chunk_data)
+                    self.accumulation_data(result)
 
                 # Вывод данных
                 #print(f'Обработанно {self.REPORT.count_reads} ридов, {self.REPORT.ram/1024**3:.2f} ГБ памяти RAM на массивы', end = '\r')
@@ -504,7 +506,7 @@ def main():
     print(f"Time: {elapsed:.2f} seconds")
 
 def testing():
-    files = []
+    files = [r"C:\Users\Stupnikova\Downloads\SRR37931586.fastq\SRR18209649.fastq.gz"]
 
     jit = Jit()
     jit.warmup()

@@ -1,9 +1,11 @@
 
+print('базовые библиотеки...')
 import os
 import re
 import sys
 import time
 import gc
+from dataclasses import dataclass
 
 # Получаем путь к папке 'gui'
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -14,13 +16,14 @@ project_root = os.path.dirname(current_dir)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from dataclasses import dataclass
 
+print('pyside библиотеки...')
 from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QWidget, QTabWidget, QVBoxLayout, QToolBar, QFileDialog, QMessageBox, QScrollArea, QTextEdit
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QSizePolicy
 from PySide6.QtCore import QThread, Signal
 
+print('модули...')
 from gui_styles.css_style import css_tab_style
 from core.Njit_FastaQ import PYJITFASTQ, Jit
 from core.graph_plot import PlotPyQtGraph
@@ -196,7 +199,9 @@ class MainWindow(QMainWindow):
 				self.state.current_thread = None
 				self.process_analysis()
 
-
+	def closeEvent(self, event):
+		self.stop_parsing()
+		return super().closeEvent(event)
 
 	def start_analysis_file(self):
 		# Определяем индекс активной вкладки
@@ -402,4 +407,4 @@ if __name__ == "__main__":
 	app.setWindowIcon(QIcon("gui_styles/massparseq.ico"))
 	main = MainWindow()
 	main.show()
-	app.exec()
+	sys.exit(app.exec())
